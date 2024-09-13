@@ -1,6 +1,3 @@
-/**
- * @todo YOU HAVE TO IMPLEMENT THE DELETE AND SAVE TASK ENDPOINT, A TASK CANNOT BE UPDATED IF THE TASK NAME DID NOT CHANGE, YOU'VE TO CONTROL THE BUTTON STATE ACCORDINGLY
- */
 import { Check, Delete } from '@mui/icons-material';
 import { Box, Button, Container, IconButton, TextField, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
@@ -10,21 +7,52 @@ import { Task } from '../index';
 const TodoPage = () => {
   const api = useFetch();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [newTaskName, setNewTaskName] = useState("");
+  const [editedTask] = useState<Task | null>(null);
 
   const handleFetchTasks = async () => setTasks(await api.get('/tasks'));
 
   const handleDelete = async (id: number) => {
-    // @todo IMPLEMENT HERE : DELETE THE TASK & REFRESH ALL THE TASKS, DON'T FORGET TO ATTACH THE FUNCTION TO THE APPROPRIATE BUTTON
-  }
+    try {
+      await api.delete(`/tasks/${id}`);
+      handleFetchTasks();
+    } catch (error) {
+      console.error("Failed to delete task", error);
+    }
+  };
 
   const handleSave = async () => {
-    // @todo IMPLEMENT HERE : SAVE THE TASK & REFRESH ALL THE TASKS, DON'T FORGET TO ATTACH THE FUNCTION TO THE APPROPRIATE BUTTON
-  }
+    if (newTaskName.trim()) {
+      try {
+        await api.post('/tasks', { name: newTaskName });
+        setNewTaskName('');
+        handleFetchTasks();
+      } catch (error) {
+        console.error("Failed to save task", error);
+      }
+    }
+  };
+
+  const handleCheck = async (task: Task) => {
+    if (editedTask && editedTask.id === task.id && editedTask.name !== task.name) {
+      try {
+        await api.put(`/tasks/${task.id}`, { name: editedTask.name });
+        handleFetchTasks();
+      } catch (error) {
+        console.error("Failed to update task", error);
+      }
+    }
+  };
+
+  const handleChange = (id: number, name: string) => {
+    const updatedTasks = tasks.map((task) =>
+      task.id === id ? { ...task, name } : task
+    );
+    setTasks(updatedTasks);
+  };
 
   useEffect(() => {
-    (async () => {
-      handleFetchTasks();
-    })();
+    handleFetchTasks();
   }, []);
 
   return (
@@ -34,28 +62,40 @@ const TodoPage = () => {
       </Box>
 
       <Box justifyContent="center" mt={5} flexDirection="column">
-        {
-          tasks.map((task) => (
-            <Box display="flex" justifyContent="center" alignItems="center" mt={2} gap={1} width="100%">
-              <TextField size="small" value={task.name} fullWidth sx={{ maxWidth: 350 }} />
-              <Box>
-                <IconButton color="success" disabled>
-                  <Check />
-                </IconButton>
-                <IconButton color="error" onClick={() => {}}>
-                  <Delete />
-                </IconButton>
-              </Box>
+        {tasks.map((task) => (
+          <Box display="flex" justifyContent="center" alignItems="center" mt={2} gap={1} width="100%">
+            <TextField
+              size="small"
+              value={task.name}
+              onChange={(e) => handleChange(task.id, e.target.value)}
+              fullWidth
+              sx={{ maxWidth: 350 }}
+            />
+            <Box>
+              <IconButton color="success" onClick={() => handleCheck(task)} disabled={editedTask?.name === task.name}>
+                <Check />
+              </IconButton>
+              <IconButton color="error" onClick={() => handleDelete(task.id)}>
+                <Delete />
+              </IconButton>
             </Box>
-          ))
-        }
+          </Box>
+        ))}
 
         <Box display="flex" justifyContent="center" alignItems="center" mt={2}>
-          <Button variant="outlined" onClick={() => {}}>Ajouter une tâche</Button>
+          <TextField
+            size="small"
+            value={newTaskName}
+            onChange={(e) => setNewTaskName(e.target.value)}
+            fullWidth
+            sx={{ maxWidth: 350 }}
+            placeholder="Ajouter une nouvelle tâche"
+          />
+          <Button variant="outlined" onClick={handleSave}>Ajouter une tâche</Button>
         </Box>
       </Box>
     </Container>
   );
-}
+};
 
 export default TodoPage;
