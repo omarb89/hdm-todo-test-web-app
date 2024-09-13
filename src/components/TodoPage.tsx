@@ -34,9 +34,9 @@ const TodoPage = () => {
   };
 
   const handleCheck = async (task: Task) => {
-    if (editedTask && editedTask.id === task.id && editedTask.name !== task.name) {
+    if (task.id) {
       try {
-        await api.put(`/tasks/${task.id}`, { name: editedTask.name });
+        await api.put(`/tasks/${task.id}`, { name: task.name });
         handleFetchTasks();
       } catch (error) {
         console.error("Failed to update task", error);
